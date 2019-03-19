@@ -88,9 +88,6 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
       : styles.circle.margin
     const circleHeight = height - (circleMargin * 2 + 1)
     const circleTransofrm = this.circleX.getTranslateTransform()
-    console.log({
-      circleTransofrm,
-    })
 
     return (
       <View
@@ -100,7 +97,7 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
           {
             backgroundColor,
             width,
-            height,
+            maxHeight: height,
             borderRadius: height,
           },
         ]}
@@ -119,18 +116,16 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
           ]}
         />
 
-        <TouchableWithoutFeedback
-          {...this.panResponder.panHandlers}
-          style={{ transform: circleTransofrm }}
-          onPress={this.toggle}
-        >
+        <TouchableWithoutFeedback onPress={this.toggle}>
           <Animated.View
+            {...this.panResponder.panHandlers}
             style={[
               styles.circle,
               circleStyle,
               {
                 maxWidth: circleHeight,
                 maxHeight: circleHeight,
+                transform: circleTransofrm,
               },
             ]}
           />
@@ -142,6 +137,7 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     borderWidth: 0.5,
     borderColor: '#EFEEF0',
     flexWrap: 'wrap',

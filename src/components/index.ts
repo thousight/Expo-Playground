@@ -5,7 +5,7 @@ import SwitchPage from './Switch'
 
 export default createAppContainer(
   createDrawerNavigator({
-    CheckboxPage,
     SwitchPage,
+    CheckboxPage,
   }),
 )
