@@ -41,38 +41,38 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
 
   panResponder = null
 
-  circleX = new Animated.ValueXY()
-
-  circleAnimation = new Animated.Value(0)
-
-  backgroundAnimation = new Animated.Value(0)
+  circleDirection = new Animated.Value(0)
 
   state = {
     isOn: false,
   }
 
   componentWillMount() {
+    const { width, height } = this.props
+    const boundary = width - height
     this.panResponder = PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: Animated.event([
-        null,
-        { dx: this.circleX.x, dy: this.circleX.y },
-      ]),
+      onPanResponderGrant: () => console.log('onPanResponderGrant'),
+      onPanResponderMove: Animated.event([null, { dx: this.circleDirection }]),
+      onPanResponderRelease: () => {
+        const direction = this.getCircleDirection()
+        const position = boundary + direction
+        let toValue = position < boundary / 2 ? 0 : boundary
+
+        if (direction < 0) {
+          toValue = position < boundary / 2 ? -1 * boundary : 0
+        }
+
+        Animated.spring(this.circleDirection, {
+          toValue,
+          friction: 10,
+          useNativeDriver: true,
+        }).start(() => this.setState({ isOn: toValue === boundary }))
+      },
     })
   }
 
-  toggle = () =>
-    this.setState(
-      ({ isOn }) => ({ isOn: !isOn }),
-      () => {
-        const { isOn } = this.state
-
-        Animated.parallel([
-          Animated.timing(this.backgroundAnimation, animationConfigs(isOn)),
-          Animated.timing(this.circleAnimation, animationConfigs(isOn)),
-        ]).start()
-      },
-    )
+  getCircleDirection = (): number => (this.circleDirection as any)._value
 
   render() {
     const {
@@ -87,7 +87,15 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
       ? parseFloat(circleStyle.margin.toString())
       : styles.circle.margin
     const circleHeight = height - (circleMargin * 2 + 1)
-    const circleTransofrm = this.circleX.getTranslateTransform()
+
+    const boundary = width - height
+    const circlePosition = this.circleDirection.interpolate({
+      inputRange:
+        this.getCircleDirection() >= 0 ? [0, boundary] : [-1 * boundary, 0],
+      outputRange: [0, boundary],
+      extrapolate: 'clamp',
+    })
+    const backgroundOpacity = Animated.divide(circlePosition, boundary)
 
     return (
       <View
@@ -108,28 +116,31 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
             {
               backgroundColor: activeColor,
               borderRadius: height,
-              opacity: this.backgroundAnimation.interpolate({
+              opacity: backgroundOpacity.interpolate({
                 inputRange: [0, 1],
                 outputRange: [0, 1],
+                extrapolate: 'clamp',
               }),
             },
           ]}
         />
 
-        <TouchableWithoutFeedback onPress={this.toggle}>
-          <Animated.View
-            {...this.panResponder.panHandlers}
-            style={[
-              styles.circle,
-              circleStyle,
-              {
-                maxWidth: circleHeight,
-                maxHeight: circleHeight,
-                transform: circleTransofrm,
-              },
-            ]}
-          />
-        </TouchableWithoutFeedback>
+        <Animated.View
+          {...this.panResponder.panHandlers}
+          style={[
+            styles.circle,
+            circleStyle,
+            {
+              maxWidth: circleHeight,
+              maxHeight: circleHeight,
+              transform: [
+                {
+                  translateX: circlePosition,
+                },
+              ],
+            },
+          ]}
+        />
       </View>
     )
   }
