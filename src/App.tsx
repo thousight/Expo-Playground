@@ -1,18 +1,7 @@
 import * as React from 'react'
-import { View, Text, StyleSheet } from 'react-native'
 
-const App = () => (
-  <View style={styles.container}>
-    <Text>Happy Hacking!</Text>
-  </View>
-)
+import AppContainer from './components'
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-})
+const App = () => <AppContainer />
 
 export default App
