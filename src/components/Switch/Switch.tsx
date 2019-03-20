@@ -45,6 +45,8 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
 
   circleSize = new Animated.Value(0)
 
+  prevDirection = -1 * this.boundary
+
   state = {
     isOn: false,
   }
@@ -54,52 +56,43 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
       onStartShouldSetPanResponder: () => true,
       onPanResponderGrant: () =>
         Animated.timing(this.circleSize, animationConfigs(true)).start(),
-      onPanResponderMove: (event, gestureState) => {
-        console.log({
-          event: event.nativeEvent,
-          gestureState,
-        })
-
-        return Animated.event([null, { dx: this.circleDirection }])(
-          event,
-          gestureState,
-        )
-      },
+      onPanResponderMove: Animated.event([null, { dx: this.circleDirection }]),
       onPanResponderRelease: () => {
         const direction = this.getCircleDirection()
+        let toValue = 0
 
-        // if (Math.abs(direction) === this.boundary) {
-        //   return this.setState(({ isOn }) => {
-        //     Animated.parallel([
-        //       Animated.spring(this.circleDirection, {
-        //         toValue: (isOn ? -1 : 1) * this.boundary,
-        //         overshootClamping: true,
-        //         useNativeDriver: true,
-        //       }),
-        //       Animated.timing(this.circleSize, animationConfigs(false)),
-        //     ]).start()
-
-        //     return { isOn: !isOn }
-        //   })
-        // }
+        if (direction === this.prevDirection) {
+          toValue = (direction > 0 ? -1 : 1) * this.boundary
+          return Animated.parallel([
+            Animated.spring(this.circleDirection, {
+              toValue,
+              overshootClamping: true,
+              useNativeDriver: true,
+            }),
+            Animated.timing(this.circleSize, animationConfigs(false)),
+          ]).start(() => this.onAnimationFinished(toValue, !this.state.isOn))
+        }
 
         const isGoingLeft =
           (direction < 0 ? this.boundary : 0) + direction < this.boundary / 2
-
-        console.log({
-          direction,
-        })
+        toValue = (isGoingLeft ? -1 : 1) * this.boundary
 
         Animated.parallel([
           Animated.spring(this.circleDirection, {
-            toValue: (isGoingLeft ? -1 : 1) * this.boundary,
+            toValue,
             overshootClamping: true,
             useNativeDriver: true,
           }),
           Animated.timing(this.circleSize, animationConfigs(false)),
-        ]).start(() => this.setState({ isOn: !isGoingLeft }))
+        ]).start(() => this.onAnimationFinished(toValue, !isGoingLeft))
       },
     })
+  }
+
+  onAnimationFinished = (toValue: number, isOn: boolean) => {
+    this.circleDirection.setValue(toValue)
+    this.prevDirection = toValue
+    this.setState({ isOn })
   }
 
   getCircleDirection = (): number => (this.circleDirection as any)._value
@@ -126,9 +119,10 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
       extrapolate: 'clamp',
     })
 
+    const direction = this.getCircleDirection()
     const circlePosition = this.circleDirection.interpolate({
-      inputRange: [-1 * this.boundary, 0, this.boundary],
-      outputRange: [0, this.boundary / 2, this.boundary],
+      inputRange: direction < 0 ? [0, this.boundary] : [-1 * this.boundary, 0],
+      outputRange: [0, this.boundary],
       extrapolate: 'clamp',
     })
 
