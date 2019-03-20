@@ -1,7 +1,6 @@
 import React, { Component } from 'react'
 import {
   View,
-  TouchableWithoutFeedback,
   StyleSheet,
   Animated,
   Easing,
@@ -28,11 +27,10 @@ interface ISwitchStates {
   isOn: boolean
 }
 
-const animationConfigs = (isOn: boolean) => ({
+const animationConfigs = (isPressed: boolean) => ({
   duration: 130,
   easing: Easing.inOut(Easing.linear),
-  toValue: isOn ? 1 : 0,
-  isInteraction: false,
+  toValue: isPressed ? 1 : 0,
   useNativeDriver: true,
 })
 
@@ -45,6 +43,8 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
 
   circleDirection = new Animated.Value(-1 * this.boundary)
 
+  circleSize = new Animated.Value(0)
+
   state = {
     isOn: false,
   }
@@ -52,24 +52,52 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
   componentWillMount() {
     this.panResponder = PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => console.log(this.getCircleDirection()),
-      onPanResponderMove: Animated.event([null, { dx: this.circleDirection }]),
+      onPanResponderGrant: () =>
+        Animated.timing(this.circleSize, animationConfigs(true)).start(),
+      onPanResponderMove: (event, gestureState) => {
+        console.log({
+          event: event.nativeEvent,
+          gestureState,
+        })
+
+        return Animated.event([null, { dx: this.circleDirection }])(
+          event,
+          gestureState,
+        )
+      },
       onPanResponderRelease: () => {
         const direction = this.getCircleDirection()
-        let toValue =
-          direction < this.boundary / 2 ? -1 * this.boundary : this.boundary
 
-        if (direction < 0) {
-          toValue =
-            this.boundary + direction < this.boundary / 2
-              ? -1 * this.boundary
-              : 0
-        }
+        // if (Math.abs(direction) === this.boundary) {
+        //   return this.setState(({ isOn }) => {
+        //     Animated.parallel([
+        //       Animated.spring(this.circleDirection, {
+        //         toValue: (isOn ? -1 : 1) * this.boundary,
+        //         overshootClamping: true,
+        //         useNativeDriver: true,
+        //       }),
+        //       Animated.timing(this.circleSize, animationConfigs(false)),
+        //     ]).start()
 
-        Animated.spring(this.circleDirection, {
-          toValue,
-          overshootClamping: true,
-        }).start(() => this.setState({ isOn: toValue === this.boundary }))
+        //     return { isOn: !isOn }
+        //   })
+        // }
+
+        const isGoingLeft =
+          (direction < 0 ? this.boundary : 0) + direction < this.boundary / 2
+
+        console.log({
+          direction,
+        })
+
+        Animated.parallel([
+          Animated.spring(this.circleDirection, {
+            toValue: (isGoingLeft ? -1 : 1) * this.boundary,
+            overshootClamping: true,
+            useNativeDriver: true,
+          }),
+          Animated.timing(this.circleSize, animationConfigs(false)),
+        ]).start(() => this.setState({ isOn: !isGoingLeft }))
       },
     })
   }
@@ -88,13 +116,19 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
     const circleMargin = circleStyle.margin
       ? parseFloat(circleStyle.margin.toString())
       : styles.circle.margin
-    const circleHeight = height - (circleMargin * 2 + 1)
-
-    const direction = this.getCircleDirection()
+    const maxCircleSize = height - (circleMargin * 2 + 1)
+    const circleSize = this.circleSize.interpolate({
+      inputRange: [0, 1],
+      outputRange: [
+        maxCircleSize / maxCircleSize,
+        (height - (circleMargin * 2.5 + 1)) / maxCircleSize,
+      ],
+      extrapolate: 'clamp',
+    })
 
     const circlePosition = this.circleDirection.interpolate({
-      inputRange: direction < 0 ? [0, this.boundary] : [-1 * this.boundary, 0],
-      outputRange: [0, this.boundary],
+      inputRange: [-1 * this.boundary, 0, this.boundary],
+      outputRange: [0, this.boundary / 2, this.boundary],
       extrapolate: 'clamp',
     })
 
@@ -135,12 +169,12 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
             styles.circle,
             circleStyle,
             {
-              maxWidth: circleHeight,
-              maxHeight: circleHeight,
+              maxWidth: maxCircleSize,
+              maxHeight: maxCircleSize,
               transform: [
-                {
-                  translateX: circlePosition,
-                },
+                { translateX: circlePosition },
+                { scaleX: circleSize },
+                { scaleY: circleSize },
               ],
             },
           ]}
@@ -164,7 +198,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   circle: {
-    margin: 3,
+    margin: 3.5,
     width: '100%',
     height: '100%',
     borderRadius: 9999,
