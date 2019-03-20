@@ -41,33 +41,35 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
 
   panResponder = null
 
-  circleDirection = new Animated.Value(0)
+  boundary = this.props.width - this.props.height
+
+  circleDirection = new Animated.Value(-1 * this.boundary)
 
   state = {
     isOn: false,
   }
 
   componentWillMount() {
-    const { width, height } = this.props
-    const boundary = width - height
     this.panResponder = PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => console.log('onPanResponderGrant'),
+      onPanResponderGrant: () => console.log(this.getCircleDirection()),
       onPanResponderMove: Animated.event([null, { dx: this.circleDirection }]),
       onPanResponderRelease: () => {
         const direction = this.getCircleDirection()
-        const position = boundary + direction
-        let toValue = position < boundary / 2 ? 0 : boundary
+        let toValue =
+          direction < this.boundary / 2 ? -1 * this.boundary : this.boundary
 
         if (direction < 0) {
-          toValue = position < boundary / 2 ? -1 * boundary : 0
+          toValue =
+            this.boundary + direction < this.boundary / 2
+              ? -1 * this.boundary
+              : 0
         }
 
         Animated.spring(this.circleDirection, {
           toValue,
-          friction: 10,
-          useNativeDriver: true,
-        }).start(() => this.setState({ isOn: toValue === boundary }))
+          overshootClamping: true,
+        }).start(() => this.setState({ isOn: toValue === this.boundary }))
       },
     })
   }
@@ -88,14 +90,13 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
       : styles.circle.margin
     const circleHeight = height - (circleMargin * 2 + 1)
 
-    const boundary = width - height
+    const direction = this.getCircleDirection()
+
     const circlePosition = this.circleDirection.interpolate({
-      inputRange:
-        this.getCircleDirection() >= 0 ? [0, boundary] : [-1 * boundary, 0],
-      outputRange: [0, boundary],
+      inputRange: direction < 0 ? [0, this.boundary] : [-1 * this.boundary, 0],
+      outputRange: [0, this.boundary],
       extrapolate: 'clamp',
     })
-    const backgroundOpacity = Animated.divide(circlePosition, boundary)
 
     return (
       <View
@@ -116,7 +117,10 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
             {
               backgroundColor: activeColor,
               borderRadius: height,
-              opacity: backgroundOpacity.interpolate({
+              opacity: Animated.divide(
+                circlePosition,
+                this.boundary,
+              ).interpolate({
                 inputRange: [0, 1],
                 outputRange: [0, 1],
                 extrapolate: 'clamp',
