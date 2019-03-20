@@ -58,11 +58,17 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
         Animated.timing(this.circleSize, animationConfigs(true)).start(),
       onPanResponderMove: Animated.event([null, { dx: this.circleDirection }]),
       onPanResponderRelease: () => {
+        const { isOn } = this.state
         const direction = this.getCircleDirection()
         let toValue = 0
 
-        if (direction === this.prevDirection) {
-          toValue = (direction > 0 ? -1 : 1) * this.boundary
+        if (
+          Platform.select({
+            ios: direction === this.prevDirection,
+            android: direction === 0,
+          })
+        ) {
+          toValue = (isOn ? -1 : 1) * this.boundary
           return Animated.parallel([
             Animated.spring(this.circleDirection, {
               toValue,
@@ -70,7 +76,7 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
               useNativeDriver: true,
             }),
             Animated.timing(this.circleSize, animationConfigs(false)),
-          ]).start(() => this.onAnimationFinished(toValue, !this.state.isOn))
+          ]).start(() => this.onAnimationFinished(toValue, !isOn))
         }
 
         const isGoingLeft =
