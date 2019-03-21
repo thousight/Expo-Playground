@@ -117,15 +117,12 @@ class Switch extends Component<ISwitchProps> {
       activeColor,
       width,
       height,
+      value,
       ...viewProps
     } = this.props
 
-    console.log({ 'render()': this.getCircleDirectionValue() })
     const circlePosition = this.circleAnimations.direction.interpolate({
-      inputRange:
-        this.getCircleDirectionValue() < 0
-          ? [0, this.boundary]
-          : [-1 * this.boundary, 0],
+      inputRange: value ? [-1 * this.boundary, 0] : [0, this.boundary],
       outputRange: [0, this.boundary],
       extrapolate: 'clamp',
     })
