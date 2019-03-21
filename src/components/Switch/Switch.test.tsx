@@ -1,9 +1,8 @@
-import React, { ComponentType } from 'react'
+import React from 'react'
 import { GestureResponderHandlers, GestureResponderEvent } from 'react-native'
 import { shallow } from 'enzyme'
 
 import Switch from './Switch'
-import { ISwitchProps } from './types'
 
 jest.useFakeTimers()
 
@@ -68,6 +67,8 @@ describe('Switch', () => {
       onValueChange: jest.fn(),
     }
     const rendered = shallow(<Switch {...props} />)
+    const instance = rendered.instance() as Switch
+
     it('smoke test', () => {
       expect(rendered).toBeDefined()
     })
@@ -102,7 +103,6 @@ describe('Switch', () => {
     })
 
     it('can be tapped without crash', () => {
-      // const instance = rendered.instance() as ComponentType<ISwitchProps>
       const circleProps = rendered
         .find('AnimatedComponent')
         .last()
@@ -115,8 +115,60 @@ describe('Switch', () => {
       // TODO: mock the data right, if possible, to get the 2 below working
       // circleProps.onResponderGrant(fakeGestureEvent)
       // circleProps.onResponderMove(fakeGestureEvent)
-      // instance.onCircleTapIn()
+      instance.onCircleTapIn()
       circleProps.onResponderRelease(fakeGestureEvent)
+    })
+
+    it('can be dragged without crash', () => {
+      const circleProps = rendered
+        .find('AnimatedComponent')
+        .last()
+        .props() as GestureResponderHandlers
+      circleProps.onStartShouldSetResponder(fakeGestureEvent)
+      // TODO: mock the data right, if possible, to get the 2 below working
+      // circleProps.onResponderGrant(fakeGestureEvent)
+      // circleProps.onResponderMove(fakeGestureEvent)
+
+      // Mimic drag right
+      instance.onCircleTapIn()
+      instance.circleAnimations.direction.setValue(20)
+      circleProps.onResponderRelease(fakeGestureEvent)
+
+      // Mimic drag left
+      instance.onCircleTapIn()
+      instance.circleAnimations.direction.setValue(-20)
+      circleProps.onResponderRelease(fakeGestureEvent)
+
+      // Mimic drag to middle toward left
+      instance.onCircleTapIn()
+      instance.circleAnimations.direction.setValue(16)
+      circleProps.onResponderRelease(fakeGestureEvent)
+    })
+  })
+
+  describe('disabled handling', () => {
+    const props = {
+      width: 50,
+      height: 30,
+      value: true,
+      onValueChange: jest.fn(),
+      disabled: true,
+      circleStyle: {
+        margin: 5,
+      },
+    }
+    const rendered = shallow(<Switch {...props} />)
+
+    it('smoke test', () => {
+      expect(rendered).toBeDefined()
+    })
+
+    it('changes is able to disabled status', () => {
+      rendered.setProps({
+        disabled: false,
+        value: true,
+      })
+      expect(rendered).toBeDefined()
     })
   })
 })
