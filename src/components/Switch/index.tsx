@@ -1,14 +1,31 @@
-import React from 'react'
-import { StyleSheet, View, Text } from 'react-native'
+import React, { Component } from 'react'
+import { StyleSheet, View, Text, Button } from 'react-native'
 
 import Switch from './Switch'
 
-const SwitchPage = () => (
-  <View style={styles.container}>
-    <Text>Switch</Text>
-    <Switch width={50} height={30} />
-  </View>
-)
+class SwitchPage extends Component {
+  state = {
+    isOn: false,
+  }
+  render() {
+    const { isOn } = this.state
+    return (
+      <View style={styles.container}>
+        <Text>Switch: {isOn ? 'on' : 'off'}</Text>
+        <Switch
+          width={50}
+          height={30}
+          onValueChange={isOn => this.setState({ isOn })}
+          value={isOn}
+        />
+        <Button
+          title=" Toggle "
+          onPress={() => this.setState({ isOn: !isOn })}
+        />
+      </View>
+    )
+  }
+}
 
 const styles = StyleSheet.create({
   container: {

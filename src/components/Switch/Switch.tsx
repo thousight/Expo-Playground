@@ -7,24 +7,23 @@ import {
   Platform,
   ViewStyle,
   PanResponder,
+  ViewProps,
 } from 'react-native'
 
-interface ISwitchProps {
+interface ISwitchProps extends ViewProps {
   containerStyle?: ViewStyle
   circleStyle?: ViewStyle
   backgroundColor?: string
   activeColor?: string
   width: number
   height: number
+  value: boolean
+  onValueChange(value: boolean): any
 }
 
 const defaultProps = {
   backgroundColor: '#F6F7FA',
   activeColor: '#66D0B1',
-}
-
-interface ISwitchStates {
-  isOn: boolean
 }
 
 const animationConfigs = (isPressed: boolean) => ({
@@ -34,7 +33,7 @@ const animationConfigs = (isPressed: boolean) => ({
   useNativeDriver: true,
 })
 
-class Switch extends Component<ISwitchProps, ISwitchStates> {
+class Switch extends Component<ISwitchProps> {
   static defaultProps = defaultProps
 
   panResponder = null
@@ -47,58 +46,73 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
 
   prevDirection = -1 * this.boundary
 
-  state = {
-    isOn: false,
-  }
+  debounce = null
 
   componentWillMount() {
     this.panResponder = PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () =>
-        Animated.timing(this.circleSize, animationConfigs(true)).start(),
+      onPanResponderGrant: this.onCircleTapIn,
       onPanResponderMove: Animated.event([null, { dx: this.circleDirection }]),
-      onPanResponderRelease: () => {
-        const { isOn } = this.state
-        const direction = this.getCircleDirection()
-        let toValue = 0
-
-        if (
-          Platform.select({
-            ios: direction === this.prevDirection,
-            android: direction === 0,
-          })
-        ) {
-          toValue = (isOn ? -1 : 1) * this.boundary
-          return Animated.parallel([
-            Animated.spring(this.circleDirection, {
-              toValue,
-              overshootClamping: true,
-              useNativeDriver: true,
-            }),
-            Animated.timing(this.circleSize, animationConfigs(false)),
-          ]).start(() => this.onAnimationFinished(toValue, !isOn))
-        }
-
-        const isGoingLeft =
-          (direction < 0 ? this.boundary : 0) + direction < this.boundary / 2
-        toValue = (isGoingLeft ? -1 : 1) * this.boundary
-
-        Animated.parallel([
-          Animated.spring(this.circleDirection, {
-            toValue,
-            overshootClamping: true,
-            useNativeDriver: true,
-          }),
-          Animated.timing(this.circleSize, animationConfigs(false)),
-        ]).start(() => this.onAnimationFinished(toValue, !isGoingLeft))
-      },
+      onPanResponderRelease: this.onCircleTapOut,
     })
   }
 
-  onAnimationFinished = (toValue: number, isOn: boolean) => {
-    this.circleDirection.setValue(toValue)
-    this.prevDirection = toValue
-    this.setState({ isOn })
+  shouldComponentUpdate(nextProps: ISwitchProps) {
+    return nextProps.value !== this.props.value
+  }
+
+  componentDidUpdate(prevProps: ISwitchProps) {
+    if (prevProps.value !== this.props.value) {
+      clearTimeout(this.debounce)
+      this.debounce = setTimeout(() => this.toggle(this.props.value), 150)
+    }
+  }
+
+  onCircleTapIn = () =>
+    Animated.timing(this.circleSize, animationConfigs(true)).start()
+
+  onCircleTapOut = () => {
+    const direction = this.getCircleDirection()
+
+    if (
+      Platform.select({
+        ios: direction === this.prevDirection,
+        android: direction === 0,
+      })
+    ) {
+      return this.toggle(!this.props.value)
+    }
+
+    const isGoingLeft =
+      (direction < 0 ? this.boundary : 0) + direction < this.boundary / 2
+    const toValue = (isGoingLeft ? -1 : 1) * this.boundary
+
+    Animated.parallel([
+      Animated.spring(this.circleDirection, {
+        toValue,
+        overshootClamping: true,
+        useNativeDriver: true,
+      }),
+      Animated.timing(this.circleSize, animationConfigs(false)),
+    ]).start(this.onAnimationFinished(toValue, !isGoingLeft))
+  }
+
+  onAnimationFinished = (animationToValue: number, newValue: boolean) => () => {
+    this.circleDirection.setValue(animationToValue)
+    this.prevDirection = animationToValue
+    this.props.onValueChange(newValue)
+  }
+
+  toggle = (newValue: boolean) => {
+    const toValue = (newValue ? 1 : -1) * this.boundary
+    return Animated.parallel([
+      Animated.spring(this.circleDirection, {
+        toValue,
+        overshootClamping: true,
+        useNativeDriver: true,
+      }),
+      Animated.timing(this.circleSize, animationConfigs(false)),
+    ]).start(this.onAnimationFinished(toValue, newValue))
   }
 
   getCircleDirection = (): number => (this.circleDirection as any)._value
@@ -111,6 +125,7 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
       activeColor,
       width,
       height,
+      ...viewProps
     } = this.props
     const circleMargin = circleStyle.margin
       ? parseFloat(circleStyle.margin.toString())
@@ -134,13 +149,14 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
 
     return (
       <View
+        {...viewProps}
         style={[
           styles.container,
           containerStyle,
           {
             backgroundColor,
             width,
-            maxHeight: height,
+            height,
             borderRadius: height,
           },
         ]}
@@ -186,7 +202,6 @@ class Switch extends Component<ISwitchProps, ISwitchStates> {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     borderWidth: 0.5,
     borderColor: '#EFEEF0',
     flexWrap: 'wrap',
@@ -215,6 +230,7 @@ const styles = StyleSheet.create({
       },
       android: {
         elevation: 2,
+        marginTop: 3,
       },
     }),
   },
