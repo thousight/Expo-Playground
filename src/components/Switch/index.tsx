@@ -6,9 +6,10 @@ import Switch from './Switch'
 class SwitchPage extends Component {
   state = {
     isOn: false,
+    disabled: false,
   }
   render() {
-    const { isOn } = this.state
+    const { isOn, disabled } = this.state
     return (
       <View style={styles.container}>
         <Text>Switch: {isOn ? 'on' : 'off'}</Text>
@@ -17,11 +18,16 @@ class SwitchPage extends Component {
           height={30}
           onValueChange={isOn => this.setState({ isOn })}
           value={isOn}
-          disabled={false}
+          disabled={disabled}
         />
         <Button
           title=" Toggle "
           onPress={() => this.setState({ isOn: !isOn })}
+        />
+
+        <Button
+          title=" Disabled Toggle "
+          onPress={() => this.setState({ disabled: !disabled })}
         />
       </View>
     )

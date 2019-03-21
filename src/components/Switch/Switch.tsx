@@ -60,7 +60,10 @@ export default class Switch extends Component<ISwitchProps> {
   }
 
   shouldComponentUpdate(nextProps: ISwitchProps) {
-    return nextProps.value !== this.props.value
+    return (
+      nextProps.value !== this.props.value ||
+      nextProps.disabled !== this.props.disabled
+    )
   }
 
   componentDidUpdate(prevProps: ISwitchProps) {
