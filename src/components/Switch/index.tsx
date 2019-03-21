@@ -17,6 +17,7 @@ class SwitchPage extends Component {
           height={30}
           onValueChange={isOn => this.setState({ isOn })}
           value={isOn}
+          disabled={false}
         />
         <Button
           title=" Toggle "

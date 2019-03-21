@@ -17,7 +17,7 @@ const springConfigs = (toValue: number) => ({
   useNativeDriver: true,
 })
 
-class Switch extends Component<ISwitchProps> {
+export default class Switch extends Component<ISwitchProps> {
   static defaultProps = defaultProps
 
   panResponder = null
@@ -39,14 +39,15 @@ class Switch extends Component<ISwitchProps> {
   debounce = null
 
   componentWillMount() {
-    const { circleStyle = {}, height } = this.props
+    const { circleStyle = {}, height, value } = this.props
     this.styleProps.circleMargin = circleStyle.margin
       ? parseFloat(circleStyle.margin.toString())
       : styles.circle.margin
     this.styleProps.maxCircleSize =
       height - (this.styleProps.circleMargin * 2 + 1)
+
     this.panResponder = PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => !this.props.disabled,
       onPanResponderGrant: this.onCircleTapIn,
       onPanResponderMove: Animated.event([
         null,
@@ -54,6 +55,8 @@ class Switch extends Component<ISwitchProps> {
       ]),
       onPanResponderRelease: this.onCircleTapOut,
     })
+
+    this.toggle(value)
   }
 
   shouldComponentUpdate(nextProps: ISwitchProps) {
@@ -71,8 +74,11 @@ class Switch extends Component<ISwitchProps> {
     Animated.timing(this.circleAnimations.size, animationConfigs(true)).start()
 
   onCircleTapOut = () => {
-    const direction = this.getCircleDirectionValue()
+    // Hacky way to get the Animated.Value as a number in TS
+    const direction = (this.circleAnimations.direction as any)._value
 
+    // If Circle didn't move, meaning user simply tapped on it
+    // without dragging, then treat it as onPress()
     if (
       Platform.select({
         ios: direction === this.prevDirection,
@@ -106,18 +112,18 @@ class Switch extends Component<ISwitchProps> {
     ]).start(this.onAnimationFinished(toValue, newValue))
   }
 
-  getCircleDirectionValue = (): number =>
-    (this.circleAnimations.direction as any)._value
-
   render() {
     const {
       containerStyle,
       circleStyle = {},
       backgroundColor,
+      circleColor,
       activeColor,
+      disabledColor,
       width,
       height,
       value,
+      disabled,
       ...viewProps
     } = this.props
 
@@ -134,7 +140,7 @@ class Switch extends Component<ISwitchProps> {
           styles.container,
           containerStyle,
           {
-            backgroundColor,
+            backgroundColor: disabled ? disabledColor : backgroundColor,
             width,
             height,
             borderRadius: height,
@@ -145,7 +151,7 @@ class Switch extends Component<ISwitchProps> {
           style={[
             styles.activeBackground,
             {
-              backgroundColor: activeColor,
+              backgroundColor: disabled ? disabledColor : activeColor,
               borderRadius: height,
               opacity: Animated.divide(
                 circlePosition,
@@ -165,8 +171,10 @@ class Switch extends Component<ISwitchProps> {
             styles.circle,
             circleStyle,
             {
+              backgroundColor: circleColor,
               maxWidth: this.styleProps.maxCircleSize,
               maxHeight: this.styleProps.maxCircleSize,
+              opacity: disabled ? 0.9 : 1,
               transform: [
                 { translateX: circlePosition },
                 {
@@ -188,5 +196,3 @@ class Switch extends Component<ISwitchProps> {
     )
   }
 }
-
-export default Switch

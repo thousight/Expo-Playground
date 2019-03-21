@@ -17,7 +17,6 @@ export default StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 9999,
-    backgroundColor: '#FFFFFF',
     ...Platform.select({
       ios: {
         shadowColor: '#333333',
