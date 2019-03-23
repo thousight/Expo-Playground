@@ -10,15 +10,21 @@ class SwitchPage extends Component {
   }
   render() {
     const { isOn, disabled } = this.state
+    console.log({
+      isOn,
+    })
+
     return (
       <View style={styles.container}>
-        <Text>Switch: {isOn ? 'on' : 'off'}</Text>
+        <Text>
+          Switch: {isOn ? 'on' : 'off'} {disabled ? 'disabled' : 'enabled'}
+        </Text>
         <Switch
           width={50}
           height={30}
           onValueChange={isOn => this.setState({ isOn })}
           value={isOn}
-          disabled={disabled}
+          containerStyle={{ marginBottom: 50, marginTop: 10 }}
         />
         <Button
           title=" Toggle "
